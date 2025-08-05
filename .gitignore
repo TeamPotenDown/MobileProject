@@ -76,3 +76,12 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Node modules and MCP related files
+node_modules/
+package-lock.json
+package.json
+
+# Unwanted files created by build system
+nul
+global.json
