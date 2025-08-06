@@ -3,9 +3,8 @@
 
 #include "GA_SkyeNormalAttack.h"
 #include "AbilitySystemComponent.h"
-#include "GameFramework/Character.h"
-#include "Animation/AnimInstance.h"
-#include "Kismet/GameplayStatics.h"
+#include "Abilities//Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "MobileProject/Character/Player/SkyeCharacter.h"
 
 UGA_SkyeNormalAttack::UGA_SkyeNormalAttack()
 {
@@ -18,37 +17,51 @@ void UGA_SkyeNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Hand
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
-	if (!FirstHitMontage || !ActorInfo->AvatarActor.IsValid())
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
-		return;
-	}
+	ASkyeCharacter* SkyeCharacter = CastChecked<ASkyeCharacter>(ActorInfo->AvatarActor.Get());
+	UAbilityTask_PlayMontageAndWait* PlayAttackTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy
+	(this, TEXT("PLayAttack"), SkyeCharacter->GetComboActionMontage());
 
-	ACharacter* Character = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
-	UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance();
-
-	// 노티파이 바인딩
-	if (AnimInstance)
-	{
-		AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UGA_SkyeNormalAttack::OnMontageNotifyBegin);
-	}
-
-	AnimInstance->Montage_Play(FirstHitMontage);
+	PlayAttackTask->OnCompleted.AddDynamic(this, &UGA_SkyeNormalAttack::OnCompletedCallback);
+	PlayAttackTask->OnInterrupted.AddDynamic(this, &UGA_SkyeNormalAttack::OnInterruptedCallback);
+	PlayAttackTask->ReadyForActivation();
 }
 
-void UGA_SkyeNormalAttack::OnMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& Payload)
+void UGA_SkyeNormalAttack::CancelAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
+	bool bReplicateCancelAbility)
 {
-	if (NotifyName == "FirstHit")
-	{
-		ApplyFirstHitEffect();
-	}
+	Super::CancelAbility(Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility);
 }
 
-void UGA_SkyeNormalAttack::ApplyFirstHitEffect()
+void UGA_SkyeNormalAttack::EndAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
+	bool bReplicateEndAbility, bool bWasCancelled)
 {
-	if (!GE_FirstHit) return;
-	AActor* OwnerActor = GetAvatarActorFromActorInfo();
-	if (!OwnerActor) return;
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
 
-	
+void UGA_SkyeNormalAttack::InputPressed(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+{
+	UE_LOG(LogTemp, Display, TEXT("InputPressed"));
+}
+
+void UGA_SkyeNormalAttack::InputReleased(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+{
+	Super::InputReleased(Handle, ActorInfo, ActivationInfo);
+}
+
+void UGA_SkyeNormalAttack::OnCompletedCallback()
+{
+	bool bReplicatedEndAbility = true;
+	bool bWasCancelled = false;
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, bReplicatedEndAbility, bWasCancelled);
+}
+
+void UGA_SkyeNormalAttack::OnInterruptedCallback()
+{
+	bool bReplicatedEndAbility = true;
+	bool bWasCancelled = true;
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, bReplicatedEndAbility, bWasCancelled);
 }

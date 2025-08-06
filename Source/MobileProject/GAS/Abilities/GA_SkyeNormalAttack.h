@@ -22,16 +22,29 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		const FGameplayEventData* TriggerEventData) override;
 
+	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		bool bReplicateCancelAbility) override;
+
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		bool bReplicateEndAbility,
+		bool bWasCancelled) override;
+
+	virtual void InputPressed(const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo) override;
+
+	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo) override;
+
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS | Montage")
-	class UAnimMontage* FirstHitMontage;
+	UFUNCTION()
+	void OnCompletedCallback();
+	UFUNCTION()
+	void OnInterruptedCallback();
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS | GE")
-	TSubclassOf<class UGameplayEffect> GE_FirstHit;
-
-	UFUNCTION()
-	void OnMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& Payload);
-
-	UFUNCTION()
-	void ApplyFirstHitEffect();
 };

@@ -31,12 +31,18 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	void Move(const struct FInputActionValue& Value);
+	void Attack(const struct FInputActionValue& Value);
 
+protected:
+	// GAS 관련 input 바인딩 처리 함수
+	UFUNCTION()
+	void SetupGASPlayerInputComponent();
+	UFUNCTION()
+	void GASInputPressed(int32 InputId);
+	UFUNCTION()
+	void GASInputReleased(int32 InputId);
+	
 public:
-	// 외관
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	class USkeletalMeshComponent* CharacterMesh;
-
 	// 카메라
 	UPROPERTY(VisibleAnywhere)
 	class USpringArmComponent* SpringArmComp;
@@ -50,6 +56,13 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "GAS")
 	TArray<TSubclassOf<class UGameplayAbility>> StartAbilities;
 
+	// combo montage
+	virtual class UAnimMontage* GetComboActionMontage() const{ return ComboActionMontage; };
+protected:
+	// anim montage
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	class UAnimMontage* ComboActionMontage;
+
 protected:
 	// input
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
@@ -57,4 +70,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	class UInputAction* MoveAction;
+	
+	// GAS input
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	class UInputAction* NormalAttackAction;
 };
