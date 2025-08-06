@@ -85,3 +85,21 @@ package.json
 # Unwanted files created by build system
 nul
 global.json
+
+# Documentation reference (read-only)
+GASDocumentation/
+
+# Starter content
+Content/FirstPerson/
+Content/TopDown/
+Content/Cursor/
+Content/Characters/
+Content/LevelPrototyping/
+Content/Input/Actions/
+Content/Input/IMC_Default.uasset
+Content/Input/IMC_MouseLook.uasset
+
+Content/__ExternalActors__/FirstPerson/
+Content/__ExternalActors__/TopDown/
+Content/__ExternalObjects__/FirstPerson/
+Content/__ExternalObjects__/TopDown/
