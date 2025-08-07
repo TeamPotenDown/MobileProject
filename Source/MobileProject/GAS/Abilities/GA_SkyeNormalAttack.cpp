@@ -9,6 +9,9 @@
 UGA_SkyeNormalAttack::UGA_SkyeNormalAttack()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+
+	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag("InputTag.PrimaryAttack.Normal"));
+	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag("Character.State.Attacking"));
 }
 
 void UGA_SkyeNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,

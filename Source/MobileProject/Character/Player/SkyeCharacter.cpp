@@ -76,8 +76,18 @@ void ASkyeCharacter::PossessedBy(AController* NewController)
 			ASC->GiveAbility(StartSpec);
 			SetupGASPlayerInputComponent();
 		}
+		
+		APlayerController* PC = CastChecked<APlayerController>(NewController);
+		PC->ConsoleCommand(TEXT("showdebug abilitysystem"));
 	}
+	
 	SetOwner(NewController);
+}
+
+void ASkyeCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
 }
 
 // Called when the game starts or when spawned
@@ -146,38 +156,71 @@ void ASkyeCharacter::SetupGASPlayerInputComponent()
 {
 	if (IsValid(ASC) && InputComponent)
 	{
-		UEnhancedInputComponent* EnhancedInputComponent{Cast<UEnhancedInputComponent>(InputComponent)};
+		UEnhancedInputComponent* EIC{Cast<UEnhancedInputComponent>(InputComponent)};
 
-		EnhancedInputComponent->BindAction(NormalAttackAction, ETriggerEvent::Triggered, this, &ASkyeCharacter::GASInputPressed, 0);
+		EIC->BindAction(NormalAttackAction, ETriggerEvent::Triggered, this,
+			&ASkyeCharacter::GASInputPressed, FGameplayTag::RequestGameplayTag("InputTag.PrimaryAttack.Normal"));
 	}
 }
 
-void ASkyeCharacter::GASInputPressed(int32 InputId)
+void ASkyeCharacter::GASInputPressed(struct FGameplayTag InputTag)
 {
-	FGameplayAbilitySpec* Spec = ASC->FindAbilitySpecFromInputID(InputId);
-	if (Spec)
+	if (!ASC) return;
+
+	// Spec 배열을 매 프레임 스캔하는 오버헤드가 약간 존재하지만, 캐릭터당 능력 수십 개 수준에서 문제될 정도는 아님
+	for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
 	{
-		Spec->InputPressed = true;
-		if (Spec->IsActive())
+		if (Spec.Ability && Spec.Ability->AbilityTags.HasTagExact(InputTag))
 		{
-			ASC->AbilitySpecInputPressed(*Spec);
-		}
-		else
-		{
-			ASC->TryActivateAbility(Spec->Handle);
+			// NOTE: HasTag - 부모 자식 관계 포함, 카테고리 단위로 폭넓게 필터링
+			// NOTE: HasTagExact - 문자열이 완전히 같을때만 true 반환
+			Spec.InputPressed = true;
+			if (Spec.IsActive())
+			{
+				ASC->AbilitySpecInputPressed(Spec);
+			}
+			else
+			{
+				ASC->TryActivateAbility(Spec.Handle);
+			}
 		}
 	}
+	
+	// FGameplayAbilitySpec* Spec = ASC->FindAbilitySpecFromInputID(InputId);
+	// if (Spec)
+	// {
+	// 	Spec->InputPressed = true;
+	// 	if (Spec->IsActive())
+	// 	{
+	// 		ASC->AbilitySpecInputPressed(*Spec);
+	// 	}
+	// 	else
+	// 	{
+	// 		ASC->TryActivateAbility(Spec->Handle);
+	// 	}
+	// }
 }
 
-void ASkyeCharacter::GASInputReleased(int32 InputId)
+void ASkyeCharacter::GASInputReleased(struct FGameplayTag InputTag)
 {
-	FGameplayAbilitySpec* Spec = ASC->FindAbilitySpecFromInputID(InputId);
-	if (Spec)
+	if (!ASC) return;
+
+	for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
 	{
-		Spec->InputPressed = false;
-		if (Spec->IsActive())
+		if (Spec.Ability && Spec.Ability->AbilityTags.HasTagExact(InputTag))
 		{
-			ASC->AbilitySpecInputReleased(*Spec);
+			Spec.InputPressed = false;
+			ASC->AbilitySpecInputReleased(Spec);
 		}
 	}
+	
+	// FGameplayAbilitySpec* Spec = ASC->FindAbilitySpecFromInputID(InputId);
+	// if (Spec)
+	// {
+	// 	Spec->InputPressed = false;
+	// 	if (Spec->IsActive())
+	// 	{
+	// 		ASC->AbilitySpecInputReleased(*Spec);
+	// 	}
+	// }
 }
