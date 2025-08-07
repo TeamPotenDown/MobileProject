@@ -47,4 +47,11 @@ protected:
 	UFUNCTION()
 	void OnInterruptedCallback();
 	
+	UFUNCTION()
+	void OnNormalHit(FGameplayEventData Payload);
+	UFUNCTION()
+	void ApplyDamageToTarget(AActor* TargetActor);
+
+	UPROPERTY(EditDefaultsOnly, Category="GAS")
+	TSubclassOf<UGameplayEffect> DamageEffectClass;
 };

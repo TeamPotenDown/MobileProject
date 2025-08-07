@@ -2,9 +2,13 @@
 
 
 #include "GA_SkyeNormalAttack.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities//Tasks/AbilityTask_PlayMontageAndWait.h"
-#include "MobileProject/Character/Player/SkyeCharacter.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "DrawDebugHelpers.h"
+#include "MobileProject/Character/Player/Skye/SkyeCharacter.h"
 
 UGA_SkyeNormalAttack::UGA_SkyeNormalAttack()
 {
@@ -22,11 +26,17 @@ void UGA_SkyeNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Hand
 
 	ASkyeCharacter* SkyeCharacter = CastChecked<ASkyeCharacter>(ActorInfo->AvatarActor.Get());
 	UAbilityTask_PlayMontageAndWait* PlayAttackTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy
-	(this, TEXT("PLayAttack"), SkyeCharacter->GetComboActionMontage());
+	(this, TEXT("PlayAttack"), SkyeCharacter->GetComboActionMontage());
 
 	PlayAttackTask->OnCompleted.AddDynamic(this, &UGA_SkyeNormalAttack::OnCompletedCallback);
 	PlayAttackTask->OnInterrupted.AddDynamic(this, &UGA_SkyeNormalAttack::OnInterruptedCallback);
 	PlayAttackTask->ReadyForActivation();
+
+	UAbilityTask_WaitGameplayEvent* WaitEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+		this, FGameplayTag::RequestGameplayTag("Event.SkyeNormalHit"));
+
+	WaitEvent->EventReceived.AddDynamic(this, &UGA_SkyeNormalAttack::OnNormalHit);
+	WaitEvent->ReadyForActivation();
 }
 
 void UGA_SkyeNormalAttack::CancelAbility(const FGameplayAbilitySpecHandle Handle,
@@ -67,4 +77,40 @@ void UGA_SkyeNormalAttack::OnInterruptedCallback()
 	bool bReplicatedEndAbility = true;
 	bool bWasCancelled = true;
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, bReplicatedEndAbility, bWasCancelled);
+}
+
+void UGA_SkyeNormalAttack::OnNormalHit(FGameplayEventData Payload)
+{
+	AActor* Owner = GetAvatarActorFromActorInfo();
+	if (!Owner) return;
+
+	FVector StartLocation = Owner->GetActorLocation() + Owner->GetActorForwardVector()*50.f;
+	FVector EndLocation = StartLocation + Owner->GetActorForwardVector()*100.f;
+
+	TArray<FHitResult> HitResults;
+	FCollisionShape Box = FCollisionShape::MakeBox(FVector(50.f));
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(Owner);
+
+	bool bHit = GetWorld()->SweepMultiByChannel(
+		HitResults, StartLocation, EndLocation, FQuat::Identity,
+		ECC_Visibility, Box, Params);
+	
+	DrawDebugBox(GetWorld(), EndLocation, Box.GetExtent(), FQuat::Identity, FColor::Red, false, 1.0f);
+
+	for (const FHitResult& Hit : HitResults)
+	{
+		ApplyDamageToTarget(Hit.GetActor());
+	}
+}
+
+void UGA_SkyeNormalAttack::ApplyDamageToTarget(AActor* TargetActor)
+{
+	if (!TargetActor) return;
+
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+	if (!TargetASC) return;
+	
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass, 1.f);
+	TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data);
 }
