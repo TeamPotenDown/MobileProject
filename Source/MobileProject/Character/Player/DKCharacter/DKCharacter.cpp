@@ -12,6 +12,7 @@
 #include "MobileProject/GAS/Abilities/GA_DKAttack.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "MobileProject/GAS/Tags/GamePlayTagsUtils.h"
+#include "MobileProject/Utils/LogUtils.h"
 
 ADKCharacter::ADKCharacter()
 {
@@ -22,16 +23,19 @@ ADKCharacter::ADKCharacter()
 	 * CAMERA SETTING
 	 ******************** 
 	*/
+	static constexpr float DEFAULT_ARM_LENGTH = 800.0f;
+	static constexpr FRotator WORLD_ROTATION = {-60.0f, 0.0f, 0.0f};
+
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(RootComponent);
-	SpringArmComponent->TargetArmLength = 800.0f;
+	SpringArmComponent->TargetArmLength = DEFAULT_ARM_LENGTH;
 	// topdown view : 독립적으로 회전
 	SpringArmComponent->bUsePawnControlRotation = false;
 	SpringArmComponent->bInheritPitch = false;
 	SpringArmComponent->bInheritRoll = false;
 	SpringArmComponent->bInheritYaw = false;
 	SpringArmComponent->SetUsingAbsoluteRotation(true);
-	SpringArmComponent->SetWorldRotation({-60.0f, 0.0f, 0.0f});
+	SpringArmComponent->SetWorldRotation(WORLD_ROTATION);
 	
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
@@ -65,7 +69,12 @@ void ADKCharacter::PossessedBy(AController* NewController)
 		
 	}
 	APlayerController* PC = Cast<APlayerController>(NewController);
-	check(PC);
+	if (!PC)
+	{
+		MP_LOGF(LogMP, Error, TEXT("PlayerController is null!"));
+		return;
+	}
+
 	
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 	{
@@ -88,13 +97,17 @@ void ADKCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	APlayerController* PC = Cast<APlayerController>(Controller);
-	check(PC);
+	// APlayerController* PC = Cast<APlayerController>(Controller);
+	// if (!PC)
+	// {
+	// 	MP_LOGF(LogMP, Error, TEXT("PlayerController is null!"));
+	// 	return;
+	// }
 	
-	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-	{
-		Subsystem->AddMappingContext(InputContext, 0);
-	}
+	// if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+	// {
+	// 	Subsystem->AddMappingContext(InputContext, 0);
+	// }
 	//
 	// for (TSubclassOf<UGameplayAbility>& Ability : DefaultAbilities)
 	// {
