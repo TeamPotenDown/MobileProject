@@ -3,19 +3,23 @@
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
 #include "GameFramework/Character.h"
+#include "AbilitySystemInterface.h"
 #include "DKCharacter.generated.h"
 
 UCLASS()
-class MOBILEPROJECT_API ADKCharacter : public ACharacter
+class MOBILEPROJECT_API ADKCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
 public:
 	ADKCharacter();
 
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override { return ASC; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -24,6 +28,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Input|Movement")
 	void Move(FVector2D Direction);
+	UFUNCTION(BlueprintCallable, Category = "Input|Attack")
+	void OnPrimaryAttackPressed();
 
 protected:
 	UFUNCTION()
@@ -31,12 +37,21 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement|Context", meta = (DisplayName = "Movement Context"), meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UInputMappingContext> InputContext;
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement|Action", meta = (DisplayName = "Move Action"), meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement", meta = (DisplayName = "Move Action"), meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> MoveAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement|Action", meta = (DisplayName = "Move Action"), meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> PrimaryAttackAction;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UCameraComponent> CameraComponent;
     UPROPERTY(EditDefaultsOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class USpringArmComponent> SpringArmComponent;
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAbilitySystemComponent> ASC;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (AllowPrivateAccess = "true"))
+	TMap<int32, TSubclassOf<class UGameplayAbility>> DefaultAbilities;
 };
