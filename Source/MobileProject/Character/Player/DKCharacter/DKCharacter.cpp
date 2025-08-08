@@ -24,7 +24,6 @@ ADKCharacter::ADKCharacter()
 	 ******************** 
 	*/
 	static constexpr float DEFAULT_ARM_LENGTH = 800.0f;
-	static constexpr FRotator WORLD_ROTATION = {-60.0f, 0.0f, 0.0f};
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(RootComponent);
@@ -35,7 +34,7 @@ ADKCharacter::ADKCharacter()
 	SpringArmComponent->bInheritRoll = false;
 	SpringArmComponent->bInheritYaw = false;
 	SpringArmComponent->SetUsingAbsoluteRotation(true);
-	SpringArmComponent->SetWorldRotation(WORLD_ROTATION);
+	SpringArmComponent->SetWorldRotation({-60.0f, 0.0f, 0.0f});
 	
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
@@ -51,11 +50,31 @@ ADKCharacter::ADKCharacter()
 	*/
 	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	ASC->SetIsReplicated(true);
+	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Full);
 }
 
 void ADKCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (!PC->IsLocalController())
+		{
+			MP_LOGF(LogMP, Error, TEXT("ADKCharacter::BeginPlay - Not Local Controller!"));
+			return;
+		}
+		
+		if (ULocalPlayer* LocalPlayer = PC->GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+				LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				Subsystem->ClearAllMappings();
+				Subsystem->AddMappingContext(InputContext, 0);
+			}
+		}
+	}
 }
 
 // PossessedBy는 서버에서만 호출됨
@@ -63,22 +82,13 @@ void ADKCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	if (!NewController->IsLocalController())
-	{
-		return ;
-		
-	}
+	MP_LOGF(LogMP, Warning, TEXT("ADKCharacter::PossessedBy called"));
+	
 	APlayerController* PC = Cast<APlayerController>(NewController);
 	if (!PC)
 	{
 		MP_LOGF(LogMP, Error, TEXT("PlayerController is null!"));
 		return;
-	}
-
-	
-	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-	{
-		Subsystem->AddMappingContext(InputContext, 0);
 	}
 
 	ASC->InitAbilityActorInfo(this, this);
@@ -90,6 +100,9 @@ void ADKCharacter::PossessedBy(AController* NewController)
 		UE_LOG(LogTemp, Log, TEXT("ADKCharacter::PossessedBy - GiveAbility: %s"), *Pair.Value.GetDefaultObject()->GetName());
 		ASC->GiveAbility(AbilitySpec);
 	}
+	PC->ConsoleCommand(TEXT("showdebug abilitysystem"));
+
+	SetOwner(NewController);
 }
 
 // Client에서 호출
@@ -97,23 +110,25 @@ void ADKCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	// APlayerController* PC = Cast<APlayerController>(Controller);
-	// if (!PC)
-	// {
-	// 	MP_LOGF(LogMP, Error, TEXT("PlayerController is null!"));
-	// 	return;
-	// }
+	MP_LOGF(LogMP, Warning, TEXT("ADKCharacter::OnRep_PlayerState called"));
+	MP_LOGF(LogMP, Warning, TEXT("Am I Client? %s"), (IsLocallyControlled() && !HasAuthority()) ? TEXT("Yes") : TEXT("No"));
 	
-	// if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-	// {
-	// 	Subsystem->AddMappingContext(InputContext, 0);
-	// }
-	//
-	// for (TSubclassOf<UGameplayAbility>& Ability : DefaultAbilities)
-	// {
-	// 	FGameplayAbilitySpec AbilitySpec(Ability);
-	// 	ASC->GiveAbility(AbilitySpec);
-	// }
+	APlayerController* PC = Cast<APlayerController>(Controller);
+	if (!PC)
+	{
+		MP_LOGF(LogMP, Error, TEXT("PlayerController is null!"));
+		return;
+	}
+
+	if (!PC->IsLocalController() || PC->HasAuthority())
+	{
+		MP_LOGF(LogMP, Warning, TEXT("ADKCharacter::OnRep_PlayerState - Not Local Controller or Server"));
+		return ;
+	}
+	
+	ASC->InitAbilityActorInfo(this, this);
+
+	PC->ConsoleCommand(TEXT("showdebug abilitysystem"));
 }
 
 // Called every frame
@@ -127,7 +142,7 @@ void ADKCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (!PlayerInputComponent)
+	if (!PlayerInputComponent || !IsLocallyControlled())
 	{
 		return ;
 	}
@@ -180,15 +195,14 @@ void ADKCharacter::OnPrimaryAttackPressed()
 	const bool bAbilityActive =
 		Spec && Spec->IsActive();
 
+	Spec->InputPressed = true;
 	if (bAbilityActive)
 	{
-		FGameplayEventData Payload;
-		Payload.EventTag   = MP_TAG_COMBO_CONTINUE;
-		Payload.Instigator = this;
-		Payload.Target     = this;
-
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-			this, Payload.EventTag, Payload);
+		if (Spec->Ability->bReplicateInputDirectly && ASC->IsOwnerActorAuthoritative() == false)
+		{
+			ASC->ServerSetInputPressed(Spec->Handle);
+		}
+		ASC->AbilitySpecInputPressed(*Spec);
 	}
 	else
 	{

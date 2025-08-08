@@ -4,6 +4,7 @@
 #include "AnimNotify_WindowCloseEvent.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbilityTypes.h"
 
 void UAnimNotify_WindowCloseEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
@@ -21,11 +22,10 @@ void UAnimNotify_WindowCloseEvent::Notify(USkeletalMeshComponent* MeshComp, UAni
 		return ;
 	}
 
-	FGameplayEventData Payload;
-	Payload.EventTag = EventTag_WindowClose;
-	Payload.Instigator = Owner;
-	Payload.Target = Owner;
-
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-		Owner, Payload.EventTag, Payload);
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner);
+	if (ASC)
+	{
+		FGameplayEffectSpecHandle GESpecHandle = ASC->MakeOutgoingSpec(GameplayEffectClass, 1, ASC->MakeEffectContext());
+		ASC->ApplyGameplayEffectSpecToSelf(*GESpecHandle.Data.Get());
+	}
 }

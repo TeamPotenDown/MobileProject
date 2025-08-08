@@ -21,6 +21,8 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
+	virtual void InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
+	
 	/** 최대 콤보 횟수 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combo")
 	int32 MaxComboCount = 4;
@@ -28,17 +30,6 @@ protected:
 	/** 콤보용 애니메이션 몽타주 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
 	TObjectPtr<class UAnimMontage> ComboMontage = nullptr;
-
-	/** UI 추가 입력 태그 */
-	UPROPERTY(EditDefaultsOnly, Category="Tags")
-	FGameplayTag EventTag_ComboContinue;
-
-	/** 창 열림 / 닫힘 태그 */
-	UPROPERTY(EditDefaultsOnly, Category="Tags")
-	FGameplayTag EventTag_WindowOpen;
-
-	UPROPERTY(EditDefaultsOnly, Category="Tags")
-	FGameplayTag EventTag_WindowClose;
 
 private:
 	int32 CurrentCombo = 0;
@@ -49,19 +40,9 @@ private:
 	TObjectPtr<class UAbilityTask_PlayMontageAndWait> MontageTask = nullptr;
 
 	UPROPERTY()
-	TObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitComboTask = nullptr;
-
-	UPROPERTY()
-	TObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitWindowTask = nullptr;
+	TSubclassOf<class UGameplayEffect> WindowEffectClass = nullptr;
 
 	/** 콜백  */
 	UFUNCTION()
 	void HandleMontageCompleted();
-	UFUNCTION()
-	void HandleComboEventReceived(FGameplayEventData Payload);
-	UFUNCTION()
-	void HandleWindowEventReceived(FGameplayEventData Payload);
-
-	void StartWaitWindowOpen();
-	void StartWaitWindowClose();
 };

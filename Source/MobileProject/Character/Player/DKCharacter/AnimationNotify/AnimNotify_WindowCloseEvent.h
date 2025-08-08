@@ -24,6 +24,6 @@ public:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS|GameplayEventTag", meta = (AllowPrivateAccess = "true"))
-	FGameplayTag EventTag_WindowClose = MP_TAG_WINDOW_CLOSE;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS|GameplayEffect", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UGameplayEffect> GameplayEffectClass = nullptr;
 };
