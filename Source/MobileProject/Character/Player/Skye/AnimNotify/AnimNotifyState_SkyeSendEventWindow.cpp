@@ -15,8 +15,9 @@ void UAnimNotifyState_SkyeSendEventWindow::NotifyBegin(USkeletalMeshComponent* M
 
 	FGameplayEventData Data;
 	Data.EventTag = FGameplayTag::RequestGameplayTag("Event.SkyeNormal.InputOpen");
+	Data.OptionalObject = Animation;
 	Data.Instigator = Owner;
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, FGameplayTag::RequestGameplayTag("Event.SkyeNormal.InputOpen"), Data);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, Data.EventTag, Data);
 }
 
 void UAnimNotifyState_SkyeSendEventWindow::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
@@ -27,6 +28,7 @@ void UAnimNotifyState_SkyeSendEventWindow::NotifyEnd(USkeletalMeshComponent* Mes
 
 	FGameplayEventData Data;
 	Data.EventTag = FGameplayTag::RequestGameplayTag("Event.SkyeNormal.InputClose");
+	Data.OptionalObject = Animation;
 	Data.Instigator = Owner;
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, FGameplayTag::RequestGameplayTag("Event.SkyeNormal.InputClose"), Data);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, Data.EventTag, Data);
 }

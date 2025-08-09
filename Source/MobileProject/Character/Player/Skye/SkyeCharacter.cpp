@@ -74,14 +74,17 @@ void ASkyeCharacter::PossessedBy(AController* NewController)
 	{
 		ASC->InitAbilityActorInfo(this, this);
 
-		int32 InputId = 0;
-		for (const auto& it : StartAbilities)
+		for (const auto& Pair : StartInputAbilities)
 		{
-			FGameplayAbilitySpec StartSpec(it, 1, static_cast<int32>(ESkyeAbilityEnum::ComboAttack));
-			ASC->GiveAbility(StartSpec);
-			SetupGASPlayerInputComponent();
+			const ESkyeAbilityEnum InputEnum = Pair.Key;
+			TSubclassOf<UGameplayAbility> AbilityClass = Pair.Value;
+
+			FGameplayAbilitySpec Spec(AbilityClass);
+			Spec.InputID = static_cast<int32>(InputEnum); // enum -> InputID
+			ASC->GiveAbility(Spec);
 		}
-		
+
+		SetupGASPlayerInputComponent();
 		APlayerController* PC = CastChecked<APlayerController>(NewController);
 		PC->ConsoleCommand(TEXT("showdebug abilitysystem"));
 	}
@@ -166,10 +169,6 @@ void ASkyeCharacter::Move(const struct FInputActionValue& Value)
 	AddMovementInput(CamRight, MoveInput.X);
 }
 
-enum class hi
-{
-	ability1
-};
 void ASkyeCharacter::SetupGASPlayerInputComponent()
 {
 	if (IsValid(ASC) && InputComponent)
@@ -178,6 +177,10 @@ void ASkyeCharacter::SetupGASPlayerInputComponent()
 
 		EIC->BindAction(NormalAttackAction, ETriggerEvent::Triggered, this,
 			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ComboAttack);
+		EIC->BindAction(NormalAttackAction, ETriggerEvent::Triggered, this,
+			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ChargeAttack);
+		EIC->BindAction(NormalAttackAction, ETriggerEvent::Completed, this,
+			&ASkyeCharacter::GASInputReleased, ESkyeAbilityEnum::ChargeAttack);
 	}
 }
 

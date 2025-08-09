@@ -19,7 +19,6 @@ void USkyeAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 void USkyeAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data)
 {
 	Super::PostGameplayEffectExecute(Data);
-	
 }
 
 void USkyeAttributeSet::OnRep_CurrentHealth(const FGameplayAttributeData& OldValue) const

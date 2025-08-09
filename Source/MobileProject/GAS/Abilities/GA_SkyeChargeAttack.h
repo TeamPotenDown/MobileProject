@@ -4,24 +4,24 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "GA_SkyeComboAttack.generated.h"
+#include "GA_SkyeChargeAttack.generated.h"
 
 /**
- * 연타로 탭했을 때만 콤보 인정
- * 홀드 시에는 홀드스킬로 넘어가게 할 것
+ * 2초간 차지를 유지하면 자동발사
+ * 계속 홀드하고있다면 -> 계속 홀드 스킬이 나가게 설계할 것
  */
 UCLASS()
-class MOBILEPROJECT_API UGA_SkyeComboAttack : public UGameplayAbility
+class MOBILEPROJECT_API UGA_SkyeChargeAttack : public UGameplayAbility
 {
 	GENERATED_BODY()
 
 public:
-	UGA_SkyeComboAttack();
-
+	UGA_SkyeChargeAttack();
+	
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
-	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle,	const FGameplayAbilityActorInfo* ActorInfo,
+	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility) override;
 
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -32,51 +32,34 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|Animation")
-	TObjectPtr<class UAnimMontage> ComboActionMontage;
-	UPROPERTY(EditDefaultsOnly, Category="GAS")
-	int32 MaxComboCount = 3;
+	TObjectPtr<class UAnimMontage> ChargeActionMontage;
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Damage")
-	TArray<TSubclassOf<UGameplayEffect>> ComboHitEffects;
+	TSubclassOf<class UGameplayEffect> ChargeHitEffect;
+
+	UPROPERTY()
+	TObjectPtr<class UAbilityTask_WaitDelay> DelayTask;
+	UPROPERTY()
+	TObjectPtr<class UAbilityTask_WaitInputRelease> WaitReleaseTask;
 	
 	UPROPERTY(EditDefaultsOnly)
-	int32 CurrentComboIndex = 0;
+	float StartTime = 0.f; // 차지 시작시간
 	UPROPERTY(EditDefaultsOnly)
-	bool bInputWindowOpen = false;
+	float HoldThreshold = 1.0f; // 차징시간
 	UPROPERTY(EditDefaultsOnly)
-	bool bInputNext = false;
-	UPROPERTY(EditDefaultsOnly)
-	bool bSectionEnding = false;
-	
-	UPROPERTY()
-	TObjectPtr<class UAbilityTask_PlayMontageAndWait> MontageTask;
-	UPROPERTY()
-	TObjectPtr<class UAbilityTask_WaitGameplayEvent> HitEventTask;
-	UPROPERTY()
-	TObjectPtr<class UAbilityTask_WaitGameplayEvent> InputOpenTask;
-	UPROPERTY()
-	TObjectPtr<class UAbilityTask_WaitGameplayEvent> InputCloseTask;
+	bool bHasFired = false; // 자동발사 여부
 
 protected:
 	UFUNCTION()
-	void StartFirstOrNextSection();
+	void BeginCharging();
 	UFUNCTION()
-	void BindSectionEvents();
+	void FireChargedSkill();
 	UFUNCTION()
-	void ClearSectionEvents();
+	void OnInputRelease(float Time);
 	UFUNCTION()
-	void OnSectionEnded();
+	void EndChargeAttack(bool bWasCancelled);
 
 	UFUNCTION()
-	void OnHitEventReceived(FGameplayEventData Payload);
-	UFUNCTION()
-	void OnInputOpenReceived(FGameplayEventData Payload);
-	UFUNCTION()
-	void OnInputCloseReceived(FGameplayEventData Payload);
-
-	UFUNCTION()
-	void Server_ApplyComboDamage();
+	void Server_ApplyChargeDamage();
 	UFUNCTION()
 	void ApplyDamageToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const;
 };
-
-

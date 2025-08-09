@@ -6,7 +6,6 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "ESkyeAbilityEnum.h"
-#include "InputActionValue.h"
 #include "SkyeCharacter.generated.h"
 
 UCLASS()
@@ -42,6 +41,10 @@ protected:
 	void GASInputPressed(ESkyeAbilityEnum InputId);
 	UFUNCTION()
 	void GASInputReleased(ESkyeAbilityEnum InputId);
+
+	// 시작 시 부여할 Ability 목록
+	UPROPERTY(EditAnywhere, Category = GAS)
+	TMap<ESkyeAbilityEnum, TSubclassOf<class UGameplayAbility>> StartInputAbilities;
 	
 	// input
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")

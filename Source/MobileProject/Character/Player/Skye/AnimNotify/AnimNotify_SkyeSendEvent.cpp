@@ -16,7 +16,8 @@ void UAnimNotify_SkyeSendEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSe
 
 	FGameplayEventData Data;
 	Data.EventTag = FGameplayTag::RequestGameplayTag("Event.SkyeNormal.Hit");
+	Data.OptionalObject = Animation;
 	Data.Instigator = Owner;
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, FGameplayTag::RequestGameplayTag("Event.SkyeNormal.Hit"), Data);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, Data.EventTag, Data);
 }

@@ -14,7 +14,8 @@ UGA_SkyeComboAttack::UGA_SkyeComboAttack()
 	bReplicateInputDirectly = true;
 	
 	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag("InputTag.PrimaryAttack.Normal"));
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag("Character.State.Attacking"));
+	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Attack.Combo"));
+	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Attack.Charging"));
 }
 
 void UGA_SkyeComboAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -126,8 +127,9 @@ void UGA_SkyeComboAttack::OnSectionEnded()
 
 void UGA_SkyeComboAttack::OnHitEventReceived(FGameplayEventData Payload)
 {
+	if (Payload.OptionalObject != ComboActionMontage) return;
 	// 서버에서 데미지 확정
-	if (CurrentActorInfo && CurrentActorInfo->IsNetAuthority())
+	if (CurrentActorInfo && HasAuthority(&CurrentActivationInfo))
 	{
 		Server_ApplyComboDamage();
 	}
@@ -135,11 +137,13 @@ void UGA_SkyeComboAttack::OnHitEventReceived(FGameplayEventData Payload)
 
 void UGA_SkyeComboAttack::OnInputOpenReceived(FGameplayEventData Payload)
 {
+	if (Payload.OptionalObject != ComboActionMontage) return;
 	bInputWindowOpen = true;
 }
 
 void UGA_SkyeComboAttack::OnInputCloseReceived(FGameplayEventData Payload)
 {
+	if (Payload.OptionalObject != ComboActionMontage) return;
 	bInputWindowOpen = false;
 }
 
