@@ -41,10 +41,6 @@ protected:
 	void GASInputPressed(ESkyeAbilityEnum InputId);
 	UFUNCTION()
 	void GASInputReleased(ESkyeAbilityEnum InputId);
-
-	// 시작 시 부여할 Ability 목록
-	UPROPERTY(EditAnywhere, Category = GAS)
-	TMap<ESkyeAbilityEnum, TSubclassOf<class UGameplayAbility>> StartInputAbilities;
 	
 	// input
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
@@ -67,8 +63,9 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "GAS")
 	TObjectPtr<class UAbilitySystemComponent> ASC;
 	
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "GAS")
-	TArray<TSubclassOf<class UGameplayAbility>> StartAbilities;
+	// 시작 시 부여할 Ability 목록
+	UPROPERTY(EditAnywhere, Category = GAS)
+	TMap<ESkyeAbilityEnum, TSubclassOf<class UGameplayAbility>> StartInputAbilities;
 	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "GAS")
 	TObjectPtr<class UAttributeSet> AttributeSet; // 추후구현

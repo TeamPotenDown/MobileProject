@@ -5,6 +5,7 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "GameFramework/Character.h"
@@ -15,7 +16,7 @@ UGA_SkyeChargeAttack::UGA_SkyeChargeAttack()
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 	bReplicateInputDirectly = true;
 	
-	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag("InputTag.PrimaryAttack.Normal"));
+	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag("InputTag.PrimaryAttack.Charge"));
 	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Attack.Charging"));
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Attack.Combo"));
 }
@@ -60,13 +61,18 @@ void UGA_SkyeChargeAttack::EndAbility(const FGameplayAbilitySpecHandle Handle,
 void UGA_SkyeChargeAttack::InputPressed(const FGameplayAbilitySpecHandle Handle,
                                         const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (bHasFired) return;
-
-	CancelAbility(Handle, ActorInfo, ActivationInfo, true);
+	
 }
 
 void UGA_SkyeChargeAttack::BeginCharging()
 {
+	
+	MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+		this, TEXT("ChargeLoop"), ChargeActionMontage, 1.f, NAME_None, /*bStopWhenAbilityEnds*/ true, 1.f, 0.f, false);
+	MontageTask->OnInterrupted.AddDynamic(this, &UGA_SkyeChargeAttack::OnMontageCallback);
+	MontageTask->OnCancelled.AddDynamic(this, &UGA_SkyeChargeAttack::OnMontageCallback);
+	MontageTask->ReadyForActivation();
+	
 	// TODO: 이동막기, 차지FX 등
 }
 
@@ -79,6 +85,13 @@ void UGA_SkyeChargeAttack::FireChargedSkill()
 	{
 		Server_ApplyChargeDamage();
 	}
+
+	FinishFire();
+}
+
+void UGA_SkyeChargeAttack::FinishFire()
+{
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
 }
 
 void UGA_SkyeChargeAttack::OnInputRelease(float Time)
@@ -95,6 +108,11 @@ void UGA_SkyeChargeAttack::EndChargeAttack(bool bWasCancelled)
 	// TODO: 이동 여기서 복구
 }
 
+void UGA_SkyeChargeAttack::OnMontageCallback()
+{
+	CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, false);
+}
+
 void UGA_SkyeChargeAttack::Server_ApplyChargeDamage()
 {
 	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
@@ -107,7 +125,7 @@ void UGA_SkyeChargeAttack::Server_ApplyChargeDamage()
 	FVector EndLocation = StartLocation + Owner->GetActorForwardVector()*100.f;
 	
 	TArray<FHitResult> HitResults;
-	FCollisionShape Box = FCollisionShape::MakeBox(FVector(50.f));
+	FCollisionShape Box = FCollisionShape::MakeBox(FVector(100.f));
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(Owner);
 	

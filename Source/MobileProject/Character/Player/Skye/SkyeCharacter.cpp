@@ -76,9 +76,12 @@ void ASkyeCharacter::PossessedBy(AController* NewController)
 
 		for (const auto& Pair : StartInputAbilities)
 		{
+			
 			const ESkyeAbilityEnum InputEnum = Pair.Key;
 			TSubclassOf<UGameplayAbility> AbilityClass = Pair.Value;
 
+			if (InputEnum == ESkyeAbilityEnum::None || !AbilityClass) continue;
+			
 			FGameplayAbilitySpec Spec(AbilityClass);
 			Spec.InputID = static_cast<int32>(InputEnum); // enum -> InputID
 			ASC->GiveAbility(Spec);
@@ -97,7 +100,7 @@ void ASkyeCharacter::OnRep_PlayerState()
 	if (ASC)
 	{
 		ASC->InitAbilityActorInfo(this, this);
-		 SetupGASPlayerInputComponent();
+		SetupGASPlayerInputComponent();
 	}
 }
 
@@ -175,7 +178,7 @@ void ASkyeCharacter::SetupGASPlayerInputComponent()
 	{
 		UEnhancedInputComponent* EIC{Cast<UEnhancedInputComponent>(InputComponent)};
 
-		EIC->BindAction(NormalAttackAction, ETriggerEvent::Triggered, this,
+		EIC->BindAction(NormalAttackAction, ETriggerEvent::Started, this,
 			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ComboAttack);
 		EIC->BindAction(NormalAttackAction, ETriggerEvent::Triggered, this,
 			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ChargeAttack);

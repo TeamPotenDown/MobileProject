@@ -37,6 +37,8 @@ protected:
 	TSubclassOf<class UGameplayEffect> ChargeHitEffect;
 
 	UPROPERTY()
+	TObjectPtr<class UAbilityTask_PlayMontageAndWait> MontageTask;
+	UPROPERTY()
 	TObjectPtr<class UAbilityTask_WaitDelay> DelayTask;
 	UPROPERTY()
 	TObjectPtr<class UAbilityTask_WaitInputRelease> WaitReleaseTask;
@@ -54,9 +56,14 @@ protected:
 	UFUNCTION()
 	void FireChargedSkill();
 	UFUNCTION()
+	void FinishFire();
+	UFUNCTION()
 	void OnInputRelease(float Time);
 	UFUNCTION()
 	void EndChargeAttack(bool bWasCancelled);
+
+	UFUNCTION()
+	void OnMontageCallback();
 
 	UFUNCTION()
 	void Server_ApplyChargeDamage();
