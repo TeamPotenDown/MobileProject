@@ -4,6 +4,7 @@
 #include "InputActionValue.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "Input/EAbilityInputID.h"
 #include "DKCharacter.generated.h"
 
 UCLASS()
@@ -29,8 +30,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input|Movement")
 	void Move(FVector2D Direction);
 	UFUNCTION(BlueprintCallable, Category = "Input|Attack")
-	void OnPrimaryAttackPressed();
+	void OnInputPressed(const EAbilityInputID InputID);
+	UFUNCTION(BlueprintCallable, Category = "Input|Attack")
+	void OnInputReleased(const EAbilityInputID InputID);
 
+protected:
+	
+	void InitASC();
+	void GrantStartupAbilities();
+	void BindASCInput();
+	
+	bool bASCInputBound = false;
+	
 protected:
 	UFUNCTION()
 	void HandleMove(const FInputActionValue& InputActionValue);
@@ -53,5 +64,5 @@ protected:
 	TObjectPtr<class UAbilitySystemComponent> ASC;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (AllowPrivateAccess = "true"))
-	TMap<int32, TSubclassOf<class UGameplayAbility>> DefaultAbilities;
+	TArray<TSubclassOf<class UGA_DK_GameplayAbilityBase>> StartupAbilities;
 };

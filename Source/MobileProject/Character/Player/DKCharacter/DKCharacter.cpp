@@ -11,6 +11,8 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "MobileProject/GAS/Abilities/GA_DKAttack.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Component/DKAbilitySystemComponent.h"
+#include "Input/EAbilityInputID.h"
 #include "MobileProject/GAS/Tags/GamePlayTagsUtils.h"
 #include "MobileProject/Utils/LogUtils.h"
 
@@ -48,60 +50,45 @@ ADKCharacter::ADKCharacter()
 	 * GAS SETTING
 	 *****************
 	*/
-	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	ASC = CreateDefaultSubobject<UDKAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	ASC->SetIsReplicated(true);
-	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Full);
+	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 }
 
 void ADKCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		if (!PC->IsLocalController())
-		{
-			MP_LOGF(LogMP, Error, TEXT("ADKCharacter::BeginPlay - Not Local Controller!"));
-			return;
-		}
-		
-		if (ULocalPlayer* LocalPlayer = PC->GetLocalPlayer())
-		{
-			if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
-				LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
-			{
-				Subsystem->ClearAllMappings();
-				Subsystem->AddMappingContext(InputContext, 0);
-			}
-		}
-	}
+	// if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	// {
+	// 	if (!PC->IsLocalController())
+	// 	{
+	// 		MP_LOGF(LogMP, Error, TEXT("ADKCharacter::BeginPlay - Not Local Controller!"));
+	// 		return;
+	// 	}
+	// 	
+	// 	if (ULocalPlayer* LocalPlayer = PC->GetLocalPlayer())
+	// 	{
+	// 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+	// 			LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+	// 		{
+	// 			Subsystem->ClearAllMappings();
+	// 			Subsystem->AddMappingContext(InputContext, 0);
+	// 		}
+	// 	}
+	// }
 }
 
 // PossessedBy는 서버에서만 호출됨
 void ADKCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
-	MP_LOGF(LogMP, Warning, TEXT("ADKCharacter::PossessedBy called"));
 	
-	APlayerController* PC = Cast<APlayerController>(NewController);
-	if (!PC)
+	InitASC();
+	if (HasAuthority())
 	{
-		MP_LOGF(LogMP, Error, TEXT("PlayerController is null!"));
-		return;
+		GrantStartupAbilities();
 	}
-
-	ASC->InitAbilityActorInfo(this, this);
-
-	for (const TPair<int32, TSubclassOf<UGameplayAbility>>& Pair : DefaultAbilities)
-	{
-		FGameplayAbilitySpec AbilitySpec(Pair.Value);
-		AbilitySpec.InputID = Pair.Key;
-		UE_LOG(LogTemp, Log, TEXT("ADKCharacter::PossessedBy - GiveAbility: %s"), *Pair.Value.GetDefaultObject()->GetName());
-		ASC->GiveAbility(AbilitySpec);
-	}
-	PC->ConsoleCommand(TEXT("showdebug abilitysystem"));
-
 	SetOwner(NewController);
 }
 
@@ -110,48 +97,36 @@ void ADKCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	MP_LOGF(LogMP, Warning, TEXT("ADKCharacter::OnRep_PlayerState called"));
-	MP_LOGF(LogMP, Warning, TEXT("Am I Client? %s"), (IsLocallyControlled() && !HasAuthority()) ? TEXT("Yes") : TEXT("No"));
-	
-	APlayerController* PC = Cast<APlayerController>(Controller);
-	if (!PC)
-	{
-		MP_LOGF(LogMP, Error, TEXT("PlayerController is null!"));
-		return;
-	}
-
-	if (!PC->IsLocalController() || PC->HasAuthority())
-	{
-		MP_LOGF(LogMP, Warning, TEXT("ADKCharacter::OnRep_PlayerState - Not Local Controller or Server"));
-		return ;
-	}
-	
-	ASC->InitAbilityActorInfo(this, this);
-
-	PC->ConsoleCommand(TEXT("showdebug abilitysystem"));
+	InitASC();
 }
 
-// Called every frame
 void ADKCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
-// Called to bind functionality to input
 void ADKCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (!PlayerInputComponent || !IsLocallyControlled())
+	// Enhanced Input 컨텍스트는 로컬 컨트롤러에서 추가
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		return ;
+		if (ULocalPlayer* LP = PC->GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				if (InputContext)
+				{
+					Subsystem->AddMappingContext(InputContext, /*Priority=*/0);
+				}
+			}
+		}
 	}
 	
-	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
-	if (EnhancedInputComponent)
+	if (IsLocallyControlled() && ASC && !bASCInputBound)
 	{
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ADKCharacter::HandleMove);
-		EnhancedInputComponent->BindAction(PrimaryAttackAction, ETriggerEvent::Completed, this, &ADKCharacter::OnPrimaryAttackPressed);
+		BindASCInput();
 	}
 }
 
@@ -181,31 +156,62 @@ void ADKCharacter::Move(FVector2D Direction)
 	AddMovementInput(MoveDirection, 1.0f);
 }
 
-void ADKCharacter::OnPrimaryAttackPressed()
+void ADKCharacter::InitASC()
 {
-	// TODO: 하드코딩 없애기
-	FGameplayAbilitySpec* Spec = ASC->FindAbilitySpecFromInputID(1);
-	
-	if (!Spec)
+	ASC->InitAbilityActorInfo(this, this);
+	// 입력 바인딩은 오너만
+	if (IsLocallyControlled() && !bASCInputBound && InputComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UGA_DKAttack not found in Ability System Component"));
+		BindASCInput();
+
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		if (PC) PC->ConsoleCommand(TEXT("showdebug abilitysystem"));
+	}
+}
+
+void ADKCharacter::GrantStartupAbilities()
+{
+	if (!HasAuthority() || !ASC)
+	{
 		return;
 	}
 
-	const bool bAbilityActive =
-		Spec && Spec->IsActive();
-
-	Spec->InputPressed = true;
-	if (bAbilityActive)
+	for (const TSubclassOf<UGA_DK_GameplayAbilityBase>& GAClass : StartupAbilities)
 	{
-		if (Spec->Ability->bReplicateInputDirectly && ASC->IsOwnerActorAuthoritative() == false)
+		if (!*GAClass)
 		{
-			ASC->ServerSetInputPressed(Spec->Handle);
+			continue;
 		}
-		ASC->AbilitySpecInputPressed(*Spec);
+		
+		const UGA_DK_GameplayAbilityBase* CDO = GAClass->GetDefaultObject<UGA_DK_GameplayAbilityBase>();
+
+		FGameplayAbilitySpec Spec(GAClass, 1,
+			static_cast<int32>(CDO->GetInputID()), this);
+
+		ASC->GiveAbility(Spec);
 	}
-	else
+}
+
+void ADKCharacter::BindASCInput()
+{
+	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
+	if (EnhancedInputComponent)
 	{
-		ASC->TryActivateAbility(Spec->Handle);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ADKCharacter::HandleMove);
+		
+		EnhancedInputComponent->BindAction(PrimaryAttackAction, ETriggerEvent::Started, this, &ADKCharacter::OnInputPressed, EAbilityInputID::Ability1);
+		EnhancedInputComponent->BindAction(PrimaryAttackAction, ETriggerEvent::Completed, this, &ADKCharacter::OnInputReleased, EAbilityInputID::Ability1);
 	}
+	
+	bASCInputBound = true;
+}
+
+void ADKCharacter::OnInputPressed(const EAbilityInputID ID)
+{
+	ASC->AbilityLocalInputPressed(static_cast<int32>(ID));
+}
+
+void ADKCharacter::OnInputReleased(const EAbilityInputID ID)
+{
+	ASC->AbilityLocalInputReleased(static_cast<int32>(ID));
 }

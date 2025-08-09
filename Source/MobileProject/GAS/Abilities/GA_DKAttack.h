@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GA_DK_GameplayAbilityBase.h"
 #include "Abilities/GameplayAbility.h"
 #include "GA_DKAttack.generated.h"
 
@@ -10,7 +11,7 @@
  * 
  */
 UCLASS()
-class MOBILEPROJECT_API UGA_DKAttack : public UGameplayAbility
+class MOBILEPROJECT_API UGA_DKAttack : public UGA_DK_GameplayAbilityBase
 {
 	GENERATED_BODY()
 
@@ -21,7 +22,8 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
-	virtual void InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
+	UFUNCTION()
+	void OnPressed();
 	
 	/** 최대 콤보 횟수 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combo")
@@ -38,7 +40,10 @@ private:
 	/* AbilityTasks */
 	UPROPERTY()
 	TObjectPtr<class UAbilityTask_PlayMontageAndWait> MontageTask = nullptr;
+	UPROPERTY()
+	TObjectPtr<class UAbilityTask_ContinuousDetectInputPress> InputPressTask = nullptr;
 
+	/* GE */
 	UPROPERTY()
 	TSubclassOf<class UGameplayEffect> WindowEffectClass = nullptr;
 
