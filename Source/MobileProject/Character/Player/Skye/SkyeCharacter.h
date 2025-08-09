@@ -5,9 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "ESkyeAbilityEnum.h"
 #include "InputActionValue.h"
 #include "SkyeCharacter.generated.h"
-
 
 UCLASS()
 class MOBILEPROJECT_API ASkyeCharacter : public ACharacter, public IAbilitySystemInterface
@@ -39,13 +39,9 @@ protected:
 	UFUNCTION()
 	void SetupGASPlayerInputComponent();
 	UFUNCTION()
-	void GASInputPressed(struct FGameplayTag InputTag);
+	void GASInputPressed(ESkyeAbilityEnum InputId);
 	UFUNCTION()
-	void GASInputReleased(struct FGameplayTag InputTag);
-	
-	// anim montage
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	class UAnimMontage* ComboActionMontage;
+	void GASInputReleased(ESkyeAbilityEnum InputId);
 	
 	// input
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
@@ -73,8 +69,4 @@ public:
 	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "GAS")
 	TObjectPtr<class UAttributeSet> AttributeSet; // 추후구현
-	
-	// combo montage
-	virtual class UAnimMontage* GetComboActionMontage() const{ return ComboActionMontage; };
-	
 };

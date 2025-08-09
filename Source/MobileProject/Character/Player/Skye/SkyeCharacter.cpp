@@ -25,16 +25,21 @@ ASkyeCharacter::ASkyeCharacter()
 	SpringArmComp->SetupAttachment(RootComponent);
 	SpringArmComp->SetWorldRotation(FRotator(-60, 0, 0));
 	SpringArmComp->TargetArmLength = 600.f;
+	SpringArmComp->SetUsingAbsoluteRotation(true);
+	SpringArmComp->bUsePawnControlRotation = false;
+	
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
 
 	// ASC
 	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
 	ASC->SetIsReplicated(true);
+	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	// 시점
 	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement=false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 
 	// Input
 	ConstructorHelpers::FObjectFinder<UInputMappingContext> SkyeIMC(TEXT("/Game/Skye/Input/IMC_Skye.IMC_Skye"));
@@ -64,6 +69,7 @@ void ASkyeCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	
+	SetOwner(NewController);
 	if (ASC)
 	{
 		ASC->InitAbilityActorInfo(this, this);
@@ -71,8 +77,7 @@ void ASkyeCharacter::PossessedBy(AController* NewController)
 		int32 InputId = 0;
 		for (const auto& it : StartAbilities)
 		{
-			FGameplayAbilitySpec StartSpec(it);
-			StartSpec.InputID = InputId++;
+			FGameplayAbilitySpec StartSpec(it, 1, static_cast<int32>(ESkyeAbilityEnum::ComboAttack));
 			ASC->GiveAbility(StartSpec);
 			SetupGASPlayerInputComponent();
 		}
@@ -80,14 +85,17 @@ void ASkyeCharacter::PossessedBy(AController* NewController)
 		APlayerController* PC = CastChecked<APlayerController>(NewController);
 		PC->ConsoleCommand(TEXT("showdebug abilitysystem"));
 	}
-	
-	SetOwner(NewController);
 }
 
 void ASkyeCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-
+	
+	if (ASC)
+	{
+		ASC->InitAbilityActorInfo(this, this);
+		 SetupGASPlayerInputComponent();
+	}
 }
 
 // Called when the game starts or when spawned
@@ -132,26 +140,36 @@ void ASkyeCharacter::Move(const struct FInputActionValue& Value)
 	if (!Controller)  return;
 	
 	FVector2D MoveInput = Value.Get<FVector2D>();
-	
-	if (Controller && (MoveInput.SizeSquared() > 0.0f))
+	if (MoveInput.IsNearlyZero()) return;
+
+	// 카메라의 'Yaw'만 사용해서 평면 기준 축 계산
+	FRotator CamYawRot(0.f, 0.f, 0.f);
+
+	// 우선순위: 내 탑다운 카메라 컴포넌트 > 플레이어 카메라 매니저 > 컨트롤러
+	if (CameraComp)
 	{
-		// 카메라 기준 방향 가져오기
-		const FRotator CameraRot = GetControlRotation();
-		const FVector Forward = FRotationMatrix(CameraRot).GetUnitAxis(EAxis::X);
-		const FVector Right = FRotationMatrix(CameraRot).GetUnitAxis(EAxis::Y);
-
-		// 입력 벡터를 월드 방향 변환
-		FVector MoveDir = (Forward * MoveInput.Y + Right * MoveInput.X);
-		MoveDir.Z = 0.0f;
-		MoveDir.Normalize();
-
-		// 이동, 캐릭터 회전 수동 처리
-		AddMovementInput(MoveDir);
-		FRotator TargetRot = MoveDir.Rotation();
-		SetActorRotation(TargetRot);
+		CamYawRot.Yaw = CameraComp->GetComponentRotation().Yaw;
 	}
+	else if (APlayerController* PC = Cast<APlayerController>(Controller))
+	{
+		CamYawRot.Yaw = PC->PlayerCameraManager->GetCameraRotation().Yaw;
+	}
+	else
+	{
+		CamYawRot.Yaw = Controller->GetControlRotation().Yaw;
+	}
+	const FVector CamForward = FRotationMatrix(CamYawRot).GetUnitAxis(EAxis::X); // 화면 위쪽
+	const FVector CamRight   = FRotationMatrix(CamYawRot).GetUnitAxis(EAxis::Y); // 화면 오른쪽
+
+	// 축별로 넣기 위(+Y)=카메라 앞, 아래(-Y)=카메라 쪽
+	AddMovementInput(CamForward, MoveInput.Y);
+	AddMovementInput(CamRight, MoveInput.X);
 }
 
+enum class hi
+{
+	ability1
+};
 void ASkyeCharacter::SetupGASPlayerInputComponent()
 {
 	if (IsValid(ASC) && InputComponent)
@@ -159,68 +177,20 @@ void ASkyeCharacter::SetupGASPlayerInputComponent()
 		UEnhancedInputComponent* EIC{Cast<UEnhancedInputComponent>(InputComponent)};
 
 		EIC->BindAction(NormalAttackAction, ETriggerEvent::Triggered, this,
-			&ASkyeCharacter::GASInputPressed, FGameplayTag::RequestGameplayTag("InputTag.PrimaryAttack.Normal"));
+			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ComboAttack);
 	}
 }
 
-void ASkyeCharacter::GASInputPressed(struct FGameplayTag InputTag)
+void ASkyeCharacter::GASInputPressed(ESkyeAbilityEnum InputId)
 {
 	if (!ASC) return;
-
-	// Spec 배열을 매 프레임 스캔하는 오버헤드가 약간 존재하지만, 캐릭터당 능력 수십 개 수준에서 문제될 정도는 아님
-	for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
-	{
-		if (Spec.Ability && Spec.Ability->AbilityTags.HasTagExact(InputTag))
-		{
-			// NOTE: HasTag - 부모 자식 관계 포함, 카테고리 단위로 폭넓게 필터링
-			// NOTE: HasTagExact - 문자열이 완전히 같을때만 true 반환
-			Spec.InputPressed = true;
-			if (Spec.IsActive())
-			{
-				ASC->AbilitySpecInputPressed(Spec);
-			}
-			else
-			{
-				ASC->TryActivateAbility(Spec.Handle);
-			}
-		}
-	}
 	
-	// FGameplayAbilitySpec* Spec = ASC->FindAbilitySpecFromInputID(InputId);
-	// if (Spec)
-	// {
-	// 	Spec->InputPressed = true;
-	// 	if (Spec->IsActive())
-	// 	{
-	// 		ASC->AbilitySpecInputPressed(*Spec);
-	// 	}
-	// 	else
-	// 	{
-	// 		ASC->TryActivateAbility(Spec->Handle);
-	// 	}
-	// }
+	ASC->AbilityLocalInputPressed(static_cast<int32>(InputId));
 }
 
-void ASkyeCharacter::GASInputReleased(struct FGameplayTag InputTag)
+void ASkyeCharacter::GASInputReleased(ESkyeAbilityEnum InputId)
 {
 	if (!ASC) return;
 
-	for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
-	{
-		if (Spec.Ability && Spec.Ability->AbilityTags.HasTagExact(InputTag))
-		{
-			Spec.InputPressed = false;
-			ASC->AbilitySpecInputReleased(Spec);
-		}
-	}
-	
-	// FGameplayAbilitySpec* Spec = ASC->FindAbilitySpecFromInputID(InputId);
-	// if (Spec)
-	// {
-	// 	Spec->InputPressed = false;
-	// 	if (Spec->IsActive())
-	// 	{
-	// 		ASC->AbilitySpecInputReleased(*Spec);
-	// 	}
-	// }
+	ASC->AbilityLocalInputReleased(static_cast<int32>(InputId));
 }
