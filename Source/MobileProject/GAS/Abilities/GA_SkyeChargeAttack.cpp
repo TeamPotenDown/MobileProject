@@ -17,8 +17,8 @@ UGA_SkyeChargeAttack::UGA_SkyeChargeAttack()
 	bReplicateInputDirectly = true;
 	
 	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag("InputTag.PrimaryAttack.Charge"));
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Attack.Charging"));
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Attack.Combo"));
+	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag("Character.State.Attack.Charging"));
+	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("Character.State.Attack.Combo"));
 }
 
 void UGA_SkyeChargeAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,

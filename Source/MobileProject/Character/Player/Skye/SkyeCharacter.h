@@ -51,6 +51,8 @@ protected:
 	// GAS input
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	class UInputAction* NormalAttackAction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	class UInputAction* ChargeAttackAction;
 	
 public:
 	// 카메라

@@ -57,7 +57,11 @@ ASkyeCharacter::ASkyeCharacter()
 	{
 		NormalAttackAction = Skye_NormalAttack.Object;
 	}
-	
+	ConstructorHelpers::FObjectFinder<UInputAction> Skye_ChargeAttack(TEXT("/Game/Skye/Input/IA_SkyeChargeAttack.IA_SkyeChargeAttack"));
+	if (Skye_ChargeAttack.Succeeded())
+	{
+		ChargeAttackAction = Skye_ChargeAttack.Object;
+	}
 }
 
 class UAbilitySystemComponent* ASkyeCharacter::GetAbilitySystemComponent() const
@@ -178,11 +182,11 @@ void ASkyeCharacter::SetupGASPlayerInputComponent()
 	{
 		UEnhancedInputComponent* EIC{Cast<UEnhancedInputComponent>(InputComponent)};
 
-		EIC->BindAction(NormalAttackAction, ETriggerEvent::Started, this,
-			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ComboAttack);
 		EIC->BindAction(NormalAttackAction, ETriggerEvent::Triggered, this,
+			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ComboAttack);
+		EIC->BindAction(ChargeAttackAction, ETriggerEvent::Triggered, this,
 			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ChargeAttack);
-		EIC->BindAction(NormalAttackAction, ETriggerEvent::Completed, this,
+		EIC->BindAction(ChargeAttackAction, ETriggerEvent::Completed, this,
 			&ASkyeCharacter::GASInputReleased, ESkyeAbilityEnum::ChargeAttack);
 	}
 }
