@@ -4,3 +4,5 @@
 
 #define MP_TAG_DK_STATE_COMBO_WINDOW_OPEN FGameplayTag::RequestGameplayTag(FName("State.Combo.Window.Open"))
 #define MP_TAG_DK_STATE_TARGETING_AWAIT_CONFIRM FGameplayTag::RequestGameplayTag(FName("State.Targeting.AwaitingConfirm"))
+
+#define MP_TAG_DK_EVENT_NOTIFY_PRIMARY_ATTACK_TRIGGERED FGameplayTag::RequestGameplayTag(FName("Event.Notify.PrimaryAttackTrigger"))

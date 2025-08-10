@@ -9,7 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "MobileProject/GAS/Abilities/GA_DKAttack.h"
+#include "MobileProject/GAS/Abilities/GA_DK_PrimaryAbility.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Component/DKAbilitySystemComponent.h"
 #include "Input/EAbilityInputID.h"
