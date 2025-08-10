@@ -52,11 +52,12 @@ void UGA_DK_PrimaryComboOne::ActivateAbility(const FGameplayAbilitySpecHandle Ha
 		HammerActor = GetWorld()->SpawnActorDeferred<AHammerActor>(HammerActorClass, FTransform(SpawnRotation, SocketLocation), Character, Character);
 		if (HammerActor)
 		{
-			// 해머 액터가 생성되었으면, Duration 후에 종료되도록 설정
-			HammerActor->SetLifeSpan(Duration);
 			HammerActor->OnEndPlay.AddDynamic(this, &UGA_DK_PrimaryComboOne::ProjectileEndPlay);
+			UGameplayStatics::FinishSpawningActor(HammerActor, FTransform(SpawnRotation, SocketLocation));
+			
+			FGameplayEffectSpecHandle DamageGEHandle = MakeOutgoingGameplayEffectSpec(DamageGE, TriggerEventData->EventMagnitude);
+			HammerActor->InitProjectile(DamageGEHandle, ActorInfo->AbilitySystemComponent.Get(), FVector2D(TargetPoint.X, TargetPoint.Y), Duration);
 		}
-		UGameplayStatics::FinishSpawningActor(HammerActor, FTransform(SpawnRotation, SocketLocation));
 	}
 }
 
