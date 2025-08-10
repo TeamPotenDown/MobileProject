@@ -7,6 +7,7 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
+#include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "GameFramework/Character.h"
 
@@ -31,14 +32,14 @@ void UGA_SkyeChargeAttack::ActivateAbility(const FGameplayAbilitySpecHandle Hand
 	StartTime = GetWorld()->GetTimeSeconds();
 
 	BeginCharging();
-
+	
 	// 대기 후 자동발사
 	DelayTask = UAbilityTask_WaitDelay::WaitDelay(this, HoldThreshold);
 	DelayTask->OnFinish.AddDynamic(this, &UGA_SkyeChargeAttack::FireChargedSkill);
 	DelayTask->ReadyForActivation();
 
 	// 조기 해제 판단
-	WaitReleaseTask  = UAbilityTask_WaitInputRelease::WaitInputRelease(this, true);
+	WaitReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this, true);
 	WaitReleaseTask->OnRelease.AddDynamic(this, &UGA_SkyeChargeAttack::OnInputRelease);
 	WaitReleaseTask->ReadyForActivation();
 }
