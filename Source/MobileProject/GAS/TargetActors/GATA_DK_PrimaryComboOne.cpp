@@ -50,8 +50,6 @@ void AGATA_DK_PrimaryComboOne::ConfirmTargetingAndContinue()
 		Dst.LiteralTransform = FTransform(FallbackPoint);
 
 		Handle = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromLocations(Src, Dst);
-
-		MP_LOGF(LogMP, Warning, TEXT("No valid target found in radius. Using fallback point at %s"), *FallbackPoint.ToString());
 	}
 
 	TargetDataReadyDelegate.Broadcast(Handle);

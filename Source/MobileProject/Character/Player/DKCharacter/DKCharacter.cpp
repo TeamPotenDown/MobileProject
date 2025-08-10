@@ -58,25 +58,6 @@ ADKCharacter::ADKCharacter()
 void ADKCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	// {
-	// 	if (!PC->IsLocalController())
-	// 	{
-	// 		MP_LOGF(LogMP, Error, TEXT("ADKCharacter::BeginPlay - Not Local Controller!"));
-	// 		return;
-	// 	}
-	// 	
-	// 	if (ULocalPlayer* LocalPlayer = PC->GetLocalPlayer())
-	// 	{
-	// 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
-	// 			LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
-	// 		{
-	// 			Subsystem->ClearAllMappings();
-	// 			Subsystem->AddMappingContext(InputContext, 0);
-	// 		}
-	// 	}
-	// }
 }
 
 // PossessedBy는 서버에서만 호출됨

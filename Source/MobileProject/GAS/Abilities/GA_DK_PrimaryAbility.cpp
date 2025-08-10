@@ -40,21 +40,16 @@ void UGA_DK_PrimaryAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	CurrentCombo = 1;
 	bCanAcceptInput = false;
 
-	ActivateTargetActor();
+	ActivateComboAbility();
 	
 	MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 		this, NAME_None, ComboMontage, 1.0f, FName(TEXT("Combo1")));
-	MontageTask->OnCompleted.AddDynamic(this, &UGA_DK_PrimaryAbility::HandleMontageCompleted);
-	MontageTask->OnInterrupted.AddDynamic(this, &UGA_DK_PrimaryAbility::HandleMontageCompleted);
-	MontageTask->OnCancelled.AddDynamic(this, &UGA_DK_PrimaryAbility::HandleMontageCompleted);
-	MontageTask->ReadyForActivation();
-
-	WaitAttackTriggerEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-		this, MP_TAG_DK_EVENT_NOTIFY_PRIMARY_ATTACK_TRIGGERED, nullptr, false, true);
-	if (WaitAttackTriggerEvent)
+	if (MontageTask)
 	{
-		WaitAttackTriggerEvent->EventReceived.AddDynamic(this, &UGA_DK_PrimaryAbility::OnCobmoTriggered);
-		WaitAttackTriggerEvent->ReadyForActivation();
+		MontageTask->OnCompleted.AddDynamic(this, &UGA_DK_PrimaryAbility::HandleMontageCompleted);
+		MontageTask->OnInterrupted.AddDynamic(this, &UGA_DK_PrimaryAbility::HandleMontageCompleted);
+		MontageTask->OnCancelled.AddDynamic(this, &UGA_DK_PrimaryAbility::HandleMontageCompleted);
+		MontageTask->ReadyForActivation();
 	}
 
 	InputPressTask = UAbilityTask_ContinuousDetectInputPress::WaitInputPress(this, false);
@@ -118,20 +113,7 @@ void UGA_DK_PrimaryAbility::OnPressed()
 	const FName MontageSectionName = *FString::Printf(TEXT("Combo%d"), CurrentCombo);
 	MontageJumpToSection(MontageSectionName);
 
-	ActivateTargetActor();
-}
-
-void UGA_DK_PrimaryAbility::OnCobmoTriggered(FGameplayEventData Payload)
-{
-	// 이전에 TA가 활성화 되어야 함
-	FGameplayEventData TriggerPayload;
-	TriggerPayload.TargetData = SavedTargetData;
-
-	FGameplayTag ComboTag = Payload.TargetTags.GetByIndex(0);
-
-	MP_LOGF(LogMP, Log, TEXT("UGA_DK_PrimaryAbility::OnCobmoTriggered() - ComboTag: %s, CurrentCombo: %d"), *ComboTag.ToString(), CurrentCombo);
-
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetAvatarActorFromActorInfo(), ComboTag, TriggerPayload);
+	ActivateComboAbility();
 }
 
 void UGA_DK_PrimaryAbility::HandleMontageCompleted()
@@ -139,36 +121,16 @@ void UGA_DK_PrimaryAbility::HandleMontageCompleted()
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
-void UGA_DK_PrimaryAbility::OnTargetDataReady(const FGameplayAbilityTargetDataHandle& Data)
+void UGA_DK_PrimaryAbility::ActivateComboAbility()
 {
-	SavedTargetData = Data;
-
-	FVector TargetPoint = UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(SavedTargetData, 0);
-	// 디버그
-	DrawDebugSphere(GetWorld(), TargetPoint, 20.f, 12, FColor::Red, false, 5.f);
-	MP_LOGF(LogTemp, Log, TEXT("UGA_DK_PrimaryAbility::OnTargetDataReady() - TargetPoint: %s"), *TargetPoint.ToString());
-}
-
-void UGA_DK_PrimaryAbility::ActivateTargetActor()
-{
-	// TODO : 콤보마다 TargetActor를 다르게 설정할 수 있도록 해야 함.
+	if (!ComboEventTags.Contains(CurrentCombo))
 	{
-		MP_LOGF(LogTemp, Log, TEXT("UGA_DK_PrimaryAbility::ActivateTargetActor() - TargetActorClass: %s"), *GetNameSafe(TargetActorClasses[ComboEventTags[CurrentCombo]]));
-		WaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(
-			this,
-			NAME_None,
-			EGameplayTargetingConfirmation::Instant,
-			TargetActorClasses[ComboEventTags[CurrentCombo]]
-		);
-		
-		WaitTargetDataTask->ValidData.AddDynamic(this, &UGA_DK_PrimaryAbility::OnTargetDataReady);
-
-		AGameplayAbilityTargetActor* SpawnedActor = nullptr;
-		if (WaitTargetDataTask->BeginSpawningActor(this, TargetActorClasses[ComboEventTags[CurrentCombo]], SpawnedActor))
-		{
-			// 여기서 커스텀 세팅도 가능함.
-			WaitTargetDataTask->FinishSpawningActor(this, SpawnedActor);
-		}
-		WaitTargetDataTask->ReadyForActivation();
+		return ;
 	}
+	
+	FGameplayTag ComboTag = ComboEventTags[CurrentCombo];
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+		GetAvatarActorFromActorInfo(), ComboTag, FGameplayEventData()
+	);
 }
