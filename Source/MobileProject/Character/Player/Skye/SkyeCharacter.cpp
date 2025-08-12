@@ -80,7 +80,6 @@ void ASkyeCharacter::PossessedBy(AController* NewController)
 
 		for (const auto& Pair : StartInputAbilities)
 		{
-			
 			const ESkyeAbilityEnum InputEnum = Pair.Key;
 			TSubclassOf<UGameplayAbility> AbilityClass = Pair.Value;
 
@@ -194,7 +193,11 @@ void ASkyeCharacter::SetupGASPlayerInputComponent()
 void ASkyeCharacter::GASInputPressed(ESkyeAbilityEnum InputId)
 {
 	if (!ASC) return;
-	
+
+	/*
+	 *InputID 기반으로 충분하고, 단일 능력만 연결된 단순 케이스 → 그냥 ASC->AbilityLocalInputPressed(InputID) / AbilityLocalInputReleased(InputID) 써도 됨.
+	 *TODO: 단, bReplicateInputDirectly = false(기본값 유지)로 두고, 능력 내부에서 WaitInputPress/Release 태스크로 처리하면 네트워크적으로도 안전하다.
+	*/
 	ASC->AbilityLocalInputPressed(static_cast<int32>(InputId));
 }
 

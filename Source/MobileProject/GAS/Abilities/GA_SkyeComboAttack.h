@@ -74,9 +74,9 @@ protected:
 	void OnInputCloseReceived(FGameplayEventData Payload);
 
 	UFUNCTION()
-	void Server_ApplyComboDamage();
+	void ApplyComboDamage();
 	UFUNCTION()
-	void ApplyDamageToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const;
+	void ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const;
 };
 
 

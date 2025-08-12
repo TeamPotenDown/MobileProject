@@ -11,6 +11,9 @@ UGA_SkyeComboAttack::UGA_SkyeComboAttack()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	// 로컬 예측 + 서버 확정: 기본 근접 공격에 무난
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+
+	// 예측/롤백 흐름과 결합이 약하고, 불필요한 RPC가 늘 수 있기 때문에 false로 설정할 것을 권장
+	// TODO: 변경
 	bReplicateInputDirectly = true;
 	
 	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag("InputTag.PrimaryAttack.Normal"));
@@ -131,7 +134,7 @@ void UGA_SkyeComboAttack::OnHitEventReceived(FGameplayEventData Payload)
 	// 서버에서 데미지 확정
 	if (CurrentActorInfo && HasAuthority(&CurrentActivationInfo))
 	{
-		Server_ApplyComboDamage();
+		ApplyComboDamage();
 	}
 }
 
@@ -147,7 +150,7 @@ void UGA_SkyeComboAttack::OnInputCloseReceived(FGameplayEventData Payload)
 	bInputWindowOpen = false;
 }
 
-void UGA_SkyeComboAttack::Server_ApplyComboDamage()
+void UGA_SkyeComboAttack::ApplyComboDamage()
 {
 	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
 	if (!ActorInfo || !ActorInfo->AvatarActor.IsValid()) return;
@@ -176,11 +179,11 @@ void UGA_SkyeComboAttack::Server_ApplyComboDamage()
 	
 	for (const FHitResult& Hit : HitResults)
 	{
-		ApplyDamageToTarget(Hit.GetActor(), Effect);
+		ApplyEffectToTarget(Hit.GetActor(), Effect);
 	}
 }
 
-void UGA_SkyeComboAttack::ApplyDamageToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const
+void UGA_SkyeComboAttack::ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const
 {
 	if (!TargetActor) return;
 

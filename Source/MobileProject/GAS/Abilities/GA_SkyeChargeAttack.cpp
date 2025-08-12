@@ -7,7 +7,6 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
-#include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "GameFramework/Character.h"
 
@@ -84,7 +83,7 @@ void UGA_SkyeChargeAttack::FireChargedSkill()
 
 	if (HasAuthority(&CurrentActivationInfo))
 	{
-		Server_ApplyChargeDamage();
+		ApplyChargeDamage();
 	}
 
 	FinishFire();
@@ -114,7 +113,7 @@ void UGA_SkyeChargeAttack::OnMontageCallback()
 	CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, false);
 }
 
-void UGA_SkyeChargeAttack::Server_ApplyChargeDamage()
+void UGA_SkyeChargeAttack::ApplyChargeDamage()
 {
 	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
 	if (!ActorInfo || !ActorInfo->AvatarActor.IsValid()) return;
@@ -141,11 +140,11 @@ void UGA_SkyeChargeAttack::Server_ApplyChargeDamage()
 	
 	for (const FHitResult& Hit : HitResults)
 	{
-		ApplyDamageToTarget(Hit.GetActor(), Effect);
+		ApplyEffectToTarget(Hit.GetActor(), Effect);
 	}
 }
 
-void UGA_SkyeChargeAttack::ApplyDamageToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const
+void UGA_SkyeChargeAttack::ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const
 {
 	if (!TargetActor) return;
 

@@ -66,7 +66,7 @@ protected:
 	void OnMontageCallback();
 
 	UFUNCTION()
-	void Server_ApplyChargeDamage();
+	void ApplyChargeDamage();
 	UFUNCTION()
-	void ApplyDamageToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const;
+	void ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectClass) const;
 };
