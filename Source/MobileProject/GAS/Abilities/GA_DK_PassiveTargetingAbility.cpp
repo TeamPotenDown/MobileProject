@@ -1,8 +1,10 @@
 #include "GA_DK_PassiveTargetingAbility.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "MobileProject/GAS/Tags/GamePlayTagsUtils.h"
+#include "MobileProject/Utils/LogUtils.h"
 
 UGA_DK_PassiveTargetingAbility::UGA_DK_PassiveTargetingAbility()
 {
@@ -40,6 +42,23 @@ void UGA_DK_PassiveTargetingAbility::EndAbility(const FGameplayAbilitySpecHandle
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
+void UGA_DK_PassiveTargetingAbility::OnAvatarSet(const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilitySpec& Spec)
+{
+	Super::OnAvatarSet(ActorInfo, Spec);
+
+	const bool bLocallyControlled = ActorInfo && ActorInfo->IsLocallyControlled();
+	if (!bLocallyControlled)
+	{
+		return ;
+	}
+
+	if (ActorInfo->AbilitySystemComponent.IsValid() && !Spec.IsActive())
+	{
+		ActorInfo->AbilitySystemComponent->TryActivateAbility(Spec.Handle);
+	}
+}
+
 void UGA_DK_PassiveTargetingAbility::ActivateTargetActor()
 {
 	ContinuousWaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(
@@ -71,6 +90,20 @@ void UGA_DK_PassiveTargetingAbility::OnTargetDataReady(const FGameplayAbilityTar
 	FGameplayEventData EventData;
 	EventData.TargetData = Data;
 	EventData.Instigator = AvatarActor;
+
+	AActor* TargetActor = nullptr;
+	if (Data.Num() > 0)
+	{
+		TargetActor = Data.Get(0)->GetActors().Num() > 0 ? Data.Get(0)->GetActors()[0].Get() : nullptr;
+		if (TargetActor)
+		{
+			MP_LOGF(LogMP, Warning, TEXT("Passive Targeting Ability: %s has selected target: %s"), *GetNameSafe(this), *GetNameSafe(TargetActor));
+		}
+		else
+		{
+			MP_LOGF(LogMP, Warning, TEXT("Passive Targeting Ability: %s has no valid target selected!"), *GetNameSafe(this));
+		}
+	}
 	
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
 		AvatarActor,
