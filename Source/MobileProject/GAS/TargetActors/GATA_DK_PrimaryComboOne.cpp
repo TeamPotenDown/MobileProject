@@ -61,7 +61,9 @@ bool AGATA_DK_PrimaryComboOne::FindNearestActorInRadius(AActor*& OutNearest, FVe
 	OutNearest = nullptr;
 
 	if (!SourceActor)
+	{
 		return false;
+	}
 
 	OutOrigin = SourceActor->GetActorLocation();
 	OutForward = SourceActor->GetActorForwardVector();

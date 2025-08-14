@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GA_DK_PrimaryAbility.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
@@ -18,12 +15,10 @@ DEFINE_LOG_CATEGORY(LogMP);
 UGA_DK_PrimaryAbility::UGA_DK_PrimaryAbility()
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	bServerRespectsRemoteAbilityCancellation = false;
-	InstancingPolicy   = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
 	InputID = EAbilityInputID::Ability1; // 기본공격
-	
-	AbilityTags.AddTag(MP_TAG_DK_PRIMARY_ATTACK);
 }
 
 void UGA_DK_PrimaryAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
