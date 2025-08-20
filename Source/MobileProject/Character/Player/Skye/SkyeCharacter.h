@@ -53,6 +53,8 @@ protected:
 	class UInputAction* NormalAttackAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	class UInputAction* ChargeAttackAction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	class UInputAction* DashAction;
 	
 public:
 	// 카메라

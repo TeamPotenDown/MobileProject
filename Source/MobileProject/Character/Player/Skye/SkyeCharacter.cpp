@@ -62,6 +62,11 @@ ASkyeCharacter::ASkyeCharacter()
 	{
 		ChargeAttackAction = Skye_ChargeAttack.Object;
 	}
+	ConstructorHelpers::FObjectFinder<UInputAction> Skye_Dash(TEXT("/Game/Skye/Input/IA_SkyeDash.IA_SkyeDash"));
+	if (Skye_Dash.Succeeded())
+	{
+		DashAction = Skye_Dash.Object;
+	}
 }
 
 class UAbilitySystemComponent* ASkyeCharacter::GetAbilitySystemComponent() const
@@ -187,6 +192,8 @@ void ASkyeCharacter::SetupGASPlayerInputComponent()
 			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::ChargeAttack);
 		EIC->BindAction(ChargeAttackAction, ETriggerEvent::Completed, this,
 			&ASkyeCharacter::GASInputReleased, ESkyeAbilityEnum::ChargeAttack);
+		EIC->BindAction(DashAction, ETriggerEvent::Triggered, this,
+			&ASkyeCharacter::GASInputPressed, ESkyeAbilityEnum::Dash);
 	}
 }
 

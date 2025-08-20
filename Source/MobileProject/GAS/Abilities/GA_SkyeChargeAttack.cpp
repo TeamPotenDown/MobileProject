@@ -27,6 +27,12 @@ void UGA_SkyeChargeAttack::ActivateAbility(const FGameplayAbilitySpecHandle Hand
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo, nullptr))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
 	bHasFired = false;
 	StartTime = GetWorld()->GetTimeSeconds();
 

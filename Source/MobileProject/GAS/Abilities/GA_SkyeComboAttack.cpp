@@ -26,6 +26,15 @@ void UGA_SkyeComboAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 	const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+
+	// 예측 실행(Prediction)일 경우 서버에 Commit 요청 전송 및 비용/쿨타임 소모 시도
+	// 서버 예측 실행 시, Commit 이전까지는 비용/쿨타임이 적용되지 않음
+	// 패시브, 즉발 후 종료 등 GA에는 사용하지 않아도 되지만 네트워크 예측 동기화를 위해 호출해주는 것이 안전하다
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo, nullptr))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	
 	CurrentComboIndex = 0;
 	bInputWindowOpen = false;
